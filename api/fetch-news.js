@@ -21,51 +21,20 @@ async function fetchXHeadlines() {
     }
 
     // Search query based on AGI thesis - finding news that sounds like SF
-    const searchQuery = `(
-        "AGI" OR 
-        "artificial general intelligence" OR 
-        "singularity" OR 
-        "superintelligence" OR 
-        "AI surpasses human" OR
-        "AI takeover" OR 
-        "post-scarcity" OR 
-        "human obsolescence" OR 
-        "AI consciousness" OR
-        "AI sentience" OR
-        "AI dystopia" OR 
-        "AI utopia" OR
-        "immortality through AI" OR
-        "mind uploading" OR
-        "neural implant breakthrough" OR
-        "brain computer interface" OR
-        "AI discovers" OR
-        "robots rebel" OR
-        "AI creates AI" OR
-        "quantum breakthrough" OR
-        "fusion unlimited energy" OR
-        "CRISPR designer babies" OR
-        "synthetic life" OR
-        "simulated reality" OR
-        "AI replaces humans" OR
-        "technological unemployment" OR
-        "AI governance" OR
-        "AI rights"
-    ) -is:retweet -is:reply lang:en has:links`;
+    const searchQuery = 'AGI OR "artificial intelligence" OR singularity OR superintelligence OR "AI breakthrough" OR "quantum computer" OR "brain interface" -is:retweet -is:reply lang:en';
 
     const params = new URLSearchParams({
         'query': searchQuery,
-        'max_results': '20', // Get more to filter
-        'tweet.fields': 'created_at,public_metrics,entities',
-        'expansions': 'author_id',
-        'user.fields': 'username,verified'
+        'max_results': '10',
+        'tweet.fields': 'created_at,public_metrics,author_id'
     });
 
     const response = await fetch(
-        `https://api.twitter.com/2/tweets/search/recent?${params}`,
+        `https://api.x.com/2/tweets/search/recent?${params}`,
         {
+            method: 'GET',
             headers: {
-                'Authorization': `Bearer ${bearerToken}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${bearerToken}`
             }
         }
     );
@@ -92,7 +61,7 @@ async function fetchXHeadlines() {
             const author = users.find(u => u.id === tweet.author_id);
             return {
                 id: tweet.id,
-                text: tweet.text.replace(/https:\/\/t\.co\/\w+/g, '').trim(), // Remove URLs
+                text: tweet.text.replace(/https:\/\/t\.co\/\w+/g, '').trim(),
                 username: author?.username || 'unknown',
                 timestamp: tweet.created_at,
                 likes: tweet.public_metrics?.like_count || 0,
@@ -114,27 +83,19 @@ async function fetchXHeadlines() {
             
             // Look for SF trope indicators
             const sfTropes = [
-                // AI surpassing humans (HAL, Skynet)
                 'surpass', 'exceed', 'outperform', 'replace',
-                // Singularity (Kurzweil/Vinge)
                 'singularity', 'exponential', 'accelerat',
-                // Dystopian (Terminator, Matrix)
                 'dystop', 'apocalyp', 'extinct', 'doom', 'threat', 'danger',
-                // Utopian (Culture series)
                 'utopi', 'post-scarcity', 'abundance', 'paradise',
-                // Human obsolescence (Player Piano)
                 'obsolete', 'unemploy', 'useless', 'redundant',
-                // Consciousness/sentience
                 'conscious', 'sentien', 'aware', 'alive', 'feel',
-                // Dramatic breakthroughs
                 'breakthrough', 'revolution', 'transform', 'first time',
-                // Immortality/transcendence
                 'immortal', 'eternal', 'upload', 'transcend'
             ];
             
             return sfTropes.some(trope => text.includes(trope));
         })
-        .slice(0, 8); // Get up to 8 most relevant
+        .slice(0, 8);
 
     return headlines;
 }
@@ -241,7 +202,7 @@ function getPreviewImage(headline) {
     if (text.includes('robot')) return 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&q=80';
     if (text.includes('gene') || text.includes('dna')) return 'https://images.unsplash.com/photo-1628595351029-c2bf17511435?w=600&q=80';
     if (text.includes('space') || text.includes('mars')) return 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=600&q=80';
-    return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80'; // Default sci-fi image
+    return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80';
 }
 
 export default async function handler(req, res) {
