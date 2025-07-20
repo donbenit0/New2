@@ -1,0 +1,28 @@
+{
+  "name": "news-from-the-future",
+  "version": "1.0.0",
+  "description": "Real headlines that sound like science fiction, matched with classic SF books by Grok",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "grok",
+    "xai",
+    "science-fiction",
+    "news",
+    "ai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "vercel": "^32.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
