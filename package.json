@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Real headlines that sound like science fiction, matched with classic SF books by Grok",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "dev": "vercel dev",
     "deploy": "vercel --prod"
