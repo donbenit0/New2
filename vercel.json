@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "env": {
+    "X_BEARER_TOKEN": "@x_bearer_token",
+    "XAI_API_KEY": "@xai_api_key"
+  },
+  "crons": [
+    {
+      "path": "/api/refresh-cache",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}
