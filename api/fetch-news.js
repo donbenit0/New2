@@ -1,197 +1,330 @@
 // api/fetch-news.js
 import fetch from 'node-fetch';
 
-// Mock data for development/testing (replace with real API calls)
-const mockHeadlines = [
-    {
-        id: '1',
-        text: "Scientists successfully teleport quantum information between two chips for the first time",
-        username: "ScienceDaily",
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        likes: 2453,
-        retweets: 892,
-        preview_image: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&q=80",
-        article_url: "https://example.com/quantum-teleportation"
-    },
-    {
-        id: '2',
-        text: "AI system discovers new antibiotics by analyzing molecular structures in virtual reality",
-        username: "TechNews",
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        likes: 1876,
-        retweets: 543,
-        preview_image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&q=80",
-        article_url: "https://example.com/ai-antibiotics"
-    },
-    {
-        id: '3',
-        text: "First human brain organoid successfully interfaces with computer, plays Pong",
-        username: "FutureHealth",
-        timestamp: new Date(Date.now() - 10800000).toISOString(),
-        likes: 3241,
-        retweets: 1203,
-        preview_image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&q=80",
-        article_url: "https://example.com/brain-computer"
-    },
-    {
-        id: '4',
-        text: "Researchers create living robots that can reproduce and evolve on their own",
-        username: "BioTechWeekly",
-        timestamp: new Date(Date.now() - 14400000).toISOString(),
-        likes: 4102,
-        retweets: 1567,
-        preview_image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=400&q=80",
-        article_url: "https://example.com/xenobots"
-    },
-    {
-        id: '5',
-        text: "Time crystal battery prototype stores energy in fourth dimension, never loses charge",
-        username: "PhysicsToday",
-        timestamp: new Date(Date.now() - 18000000).toISOString(),
-        likes: 5623,
-        retweets: 2341,
-        preview_image: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&q=80",
-        article_url: "https://example.com/time-crystal"
-    }
-];
-
-// Mock book matches (would come from Grok API)
-const bookMatches = {
-    '1': {
-        title: "The Stars My Destination",
-        author: "Alfred Bester",
-        summary: "A tale of revenge and transformation featuring jaunting - the ability to teleport instantly across vast distances. The protagonist discovers the power of human potential when pushed to extremes.",
-        quote: "Gully Foyle is my name, and Terra is my nation. Deep space is my dwelling place, and death's my destination."
-    },
-    '2': {
-        title: "Do Androids Dream of Electric Sheep?",
-        author: "Philip K. Dick",
-        summary: "In a post-apocalyptic world, bounty hunter Rick Deckard hunts down rogue androids while questioning what defines humanity and consciousness in an age of artificial beings.",
-        quote: "The electric things have their life too. Paltry as those lives are."
-    },
-    '3': {
-        title: "Neuromancer",
-        author: "William Gibson",
-        summary: "A burned-out computer hacker is hired for one last job: to hack an artificial intelligence. Gibson's vision of cyberspace and neural interfaces pioneered the cyberpunk genre.",
-        quote: "The matrix has its roots in primitive arcade games... in early graphics programs and military experimentation with cranial jacks."
-    },
-    '4': {
-        title: "Frankenstein",
-        author: "Mary Shelley",
-        summary: "Victor Frankenstein's creation of life from dead tissue explores the dangers of unchecked scientific ambition and the responsibilities we have toward our creations.",
-        quote: "Life and death appeared to me ideal bounds, which I should first break through, and pour a torrent of light into our dark world."
-    },
-    '5': {
-        title: "The Time Machine",
-        author: "H.G. Wells",
-        summary: "An inventor creates a machine capable of traveling through time, discovering the far future of humanity and the entropy that awaits all things.",
-        quote: "There is no difference between Time and any of the three dimensions of Space except that our consciousness moves along it."
-    }
+// Cache to avoid hitting rate limits
+let cache = {
+    data: null,
+    timestamp: null,
+    ttl: 600000 // 10 minutes
 };
+
+function isCacheValid() {
+    return cache.data && cache.timestamp && (Date.now() - cache.timestamp < cache.ttl);
+}
+
+// Fetch sci-fi-like headlines from X
+async function fetchXHeadlines() {
+    const bearerToken = process.env.X_BEARER_TOKEN;
+    
+    if (!bearerToken) {
+        throw new Error('X API Bearer Token not configured');
+    }
+
+    // Search query based on AGI thesis - finding news that sounds like SF
+    const searchQuery = `(
+        "AGI" OR 
+        "artificial general intelligence" OR 
+        "singularity" OR 
+        "superintelligence" OR 
+        "AI surpasses human" OR
+        "AI takeover" OR 
+        "post-scarcity" OR 
+        "human obsolescence" OR 
+        "AI consciousness" OR
+        "AI sentience" OR
+        "AI dystopia" OR 
+        "AI utopia" OR
+        "immortality through AI" OR
+        "mind uploading" OR
+        "neural implant breakthrough" OR
+        "brain computer interface" OR
+        "AI discovers" OR
+        "robots rebel" OR
+        "AI creates AI" OR
+        "quantum breakthrough" OR
+        "fusion unlimited energy" OR
+        "CRISPR designer babies" OR
+        "synthetic life" OR
+        "simulated reality" OR
+        "AI replaces humans" OR
+        "technological unemployment" OR
+        "AI governance" OR
+        "AI rights"
+    ) -is:retweet -is:reply lang:en has:links`;
+
+    const params = new URLSearchParams({
+        'query': searchQuery,
+        'max_results': '20', // Get more to filter
+        'tweet.fields': 'created_at,public_metrics,entities',
+        'expansions': 'author_id',
+        'user.fields': 'username,verified'
+    });
+
+    const response = await fetch(
+        `https://api.twitter.com/2/tweets/search/recent?${params}`,
+        {
+            headers: {
+                'Authorization': `Bearer ${bearerToken}`,
+                'Content-Type': 'application/json'
+            }
+        }
+    );
+
+    if (!response.ok) {
+        const error = await response.text();
+        console.error('Twitter API Error:', error);
+        throw new Error(`X API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.data || data.data.length === 0) {
+        throw new Error('No tweets found');
+    }
+
+    // Process tweets
+    const tweets = data.data || [];
+    const users = data.includes?.users || [];
+    
+    // Filter and format the most sci-fi sounding headlines
+    const headlines = tweets
+        .map(tweet => {
+            const author = users.find(u => u.id === tweet.author_id);
+            return {
+                id: tweet.id,
+                text: tweet.text.replace(/https:\/\/t\.co\/\w+/g, '').trim(), // Remove URLs
+                username: author?.username || 'unknown',
+                timestamp: tweet.created_at,
+                likes: tweet.public_metrics?.like_count || 0,
+                retweets: tweet.public_metrics?.retweet_count || 0
+            };
+        })
+        .filter(tweet => {
+            // Filter for headlines that really sound like SF tropes
+            const text = tweet.text.toLowerCase();
+            
+            // Skip purely technical posts without SF vibe
+            if (text.includes('tutorial') || 
+                text.includes('course') || 
+                text.includes('workshop') ||
+                text.includes('conference') ||
+                text.includes('webinar')) {
+                return false;
+            }
+            
+            // Look for SF trope indicators
+            const sfTropes = [
+                // AI surpassing humans (HAL, Skynet)
+                'surpass', 'exceed', 'outperform', 'replace',
+                // Singularity (Kurzweil/Vinge)
+                'singularity', 'exponential', 'accelerat',
+                // Dystopian (Terminator, Matrix)
+                'dystop', 'apocalyp', 'extinct', 'doom', 'threat', 'danger',
+                // Utopian (Culture series)
+                'utopi', 'post-scarcity', 'abundance', 'paradise',
+                // Human obsolescence (Player Piano)
+                'obsolete', 'unemploy', 'useless', 'redundant',
+                // Consciousness/sentience
+                'conscious', 'sentien', 'aware', 'alive', 'feel',
+                // Dramatic breakthroughs
+                'breakthrough', 'revolution', 'transform', 'first time',
+                // Immortality/transcendence
+                'immortal', 'eternal', 'upload', 'transcend'
+            ];
+            
+            return sfTropes.some(trope => text.includes(trope));
+        })
+        .slice(0, 8); // Get up to 8 most relevant
+
+    return headlines;
+}
+
+// Get book match from Grok
+async function getGrokMatch(headline) {
+    const apiKey = process.env.XAI_API_KEY;
+    
+    if (!apiKey) {
+        throw new Error('xAI API Key not configured');
+    }
+
+    const prompt = `Analyze this real news headline that sounds like science fiction. Match it with the MOST RELEVANT classic SF book/story that explored this exact theme.
+
+Headline: "${headline}"
+
+This headline evokes classic SF tropes. Consider these categories:
+- AI surpassing humans (HAL 9000, Skynet)
+- Singularity/acceleration (Vinge, Kurzweil)
+- Dystopian AI takeover (Terminator, Matrix)
+- Utopian post-scarcity (Culture series, Star Trek)
+- Human obsolescence (Player Piano, Brave New World)
+- Consciousness/sentience (Do Androids Dream, Ex Machina)
+- Simulated reality (Matrix, Simulacron-3)
+- Immortality via tech (Altered Carbon, Download)
+
+Match with the MOST THEMATICALLY RELEVANT book. The connection should be obvious.
+
+Respond with ONLY a JSON object (no markdown):
+{
+    "title": "Book/Story Title",
+    "author": "Author Name",
+    "year": 1984,
+    "summary": "2-3 sentences explaining how this book's core theme directly relates to the headline",
+    "quote": "A thematically relevant quote from the book",
+    "sf_trope": "The specific SF trope (e.g., 'AI Rebellion', 'Singularity', 'Post-Scarcity')"
+}
+
+Focus on classics by: Asimov, Clarke, Dick, Gibson, Le Guin, Herbert, Bradbury, Wells, Vinge, Stephenson, Banks, Huxley, Orwell, Vonnegut`;
+
+    try {
+        const response = await fetch('https://api.x.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'grok-beta',
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are an expert in science fiction literature, especially works dealing with AGI, singularity, and technological transformation. Always respond with valid JSON only.'
+                    },
+                    {
+                        role: 'user',
+                        content: prompt
+                    }
+                ],
+                temperature: 0.7,
+                max_tokens: 400
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.text();
+            console.error('Grok API Error:', error);
+            throw new Error(`xAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices[0].message.content;
+        
+        // Parse JSON response
+        const bookMatch = JSON.parse(content);
+        
+        return {
+            title: bookMatch.title,
+            author: bookMatch.author,
+            summary: bookMatch.summary,
+            quote: bookMatch.quote || null,
+            connection: `SF Trope: ${bookMatch.sf_trope || 'Technological Transformation'}`
+        };
+        
+    } catch (error) {
+        console.error('Error with Grok match:', error);
+        // Fallback book match
+        return {
+            title: "Neuromancer",
+            author: "William Gibson",
+            summary: "A groundbreaking cyberpunk novel about hackers and AI in cyberspace. Gibson's vision of the digital future has proven remarkably prescient.",
+            quote: "The sky above the port was the color of television, tuned to a dead channel.",
+            connection: "This headline represents the kind of technological breakthrough Gibson envisioned."
+        };
+    }
+}
+
+// Add some demo preview images based on keywords
+function getPreviewImage(headline) {
+    const text = headline.toLowerCase();
+    if (text.includes('quantum')) return 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=600&q=80';
+    if (text.includes('ai') || text.includes('artificial')) return 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=600&q=80';
+    if (text.includes('brain') || text.includes('neural')) return 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=600&q=80';
+    if (text.includes('robot')) return 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&q=80';
+    if (text.includes('gene') || text.includes('dna')) return 'https://images.unsplash.com/photo-1628595351029-c2bf17511435?w=600&q=80';
+    if (text.includes('space') || text.includes('mars')) return 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=600&q=80';
+    return 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80'; // Default sci-fi image
+}
 
 export default async function handler(req, res) {
     // Enable CORS
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
     try {
-        // In production, you would:
-        // 1. Fetch real headlines from X API
-        // 2. Send each headline to xAI Grok API for book matching
-        // 3. Cache results to avoid rate limits
+        // Check cache first
+        if (isCacheValid()) {
+            console.log('Returning cached data');
+            return res.status(200).json(cache.data);
+        }
 
-        // For now, using mock data
-        const matches = mockHeadlines.map(headline => ({
-            headline: headline.text,
-            username: headline.username,
-            timestamp: headline.timestamp,
-            likes: headline.likes,
-            retweets: headline.retweets,
-            preview_image: headline.preview_image,
-            article_url: headline.article_url,
-            book: bookMatches[headline.id] || {
-                title: "Unknown Book",
-                author: "Unknown Author",
-                summary: "No match found for this headline.",
-                quote: null
-            }
-        }));
+        console.log('Fetching fresh data...');
+        
+        // Fetch headlines from X
+        const headlines = await fetchXHeadlines();
+        
+        if (!headlines || headlines.length === 0) {
+            throw new Error('No suitable headlines found');
+        }
 
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log(`Found ${headlines.length} sci-fi-like headlines`);
 
-        res.status(200).json({ matches });
+        // Get book matches for each headline
+        const matches = await Promise.all(
+            headlines.map(async (headline) => {
+                try {
+                    const book = await getGrokMatch(headline.text);
+                    
+                    return {
+                        headline: headline.text,
+                        username: headline.username,
+                        timestamp: headline.timestamp,
+                        likes: headline.likes,
+                        retweets: headline.retweets,
+                        preview_image: getPreviewImage(headline.text),
+                        book: book
+                    };
+                } catch (error) {
+                    console.error('Error processing headline:', error);
+                    return null;
+                }
+            })
+        );
+
+        // Filter out any failed matches
+        const validMatches = matches.filter(m => m !== null);
+
+        if (validMatches.length === 0) {
+            throw new Error('No valid matches generated');
+        }
+
+        // Update cache
+        const responseData = { 
+            matches: validMatches,
+            generated_at: new Date().toISOString(),
+            count: validMatches.length
+        };
+        
+        cache = {
+            data: responseData,
+            timestamp: Date.now()
+        };
+
+        console.log(`Returning ${validMatches.length} matches`);
+        res.status(200).json(responseData);
 
     } catch (error) {
-        console.error('Error in fetch-news API:', error);
-        res.status(500).json({ error: 'Failed to fetch news' });
+        console.error('API Error:', error.message);
+        
+        // Return error with helpful message
+        res.status(500).json({ 
+            error: 'Unable to fetch headlines',
+            message: error.message,
+            hint: 'Make sure you have Basic or Pro tier X API access'
+        });
     }
 }
-
-/* 
-PRODUCTION IMPLEMENTATION NOTES:
-
-To implement with real APIs, you'll need:
-
-1. X (Twitter) API v2 Access:
-   - Apply for developer account at developer.twitter.com
-   - Get API keys and bearer token
-   - Use the search tweets endpoint with query like:
-     "science OR technology OR future -is:retweet lang:en"
-   - Filter for tweets that sound futuristic
-
-2. xAI Grok API Access:
-   - Sign up at x.ai for API access
-   - Get API key
-   - Use their completion endpoint with prompt engineering
-
-Example implementation:
-
-```javascript
-// Fetch from X API
-async function fetchXHeadlines() {
-    const response = await fetch('https://api.twitter.com/2/tweets/search/recent', {
-        headers: {
-            'Authorization': `Bearer ${process.env.X_BEARER_TOKEN}`
-        },
-        params: {
-            query: 'science technology future -is:retweet lang:en',
-            max_results: 10,
-            'tweet.fields': 'created_at,public_metrics,entities',
-            'expansions': 'author_id',
-            'user.fields': 'username'
-        }
-    });
-    return response.json();
-}
-
-// Get book match from Grok
-async function getGrokMatch(headline) {
-    const response = await fetch('https://api.x.ai/v1/completions', {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            model: 'grok-1',
-            prompt: `Analyze this headline: "${headline}". 
-                     Does it sound like science fiction? If yes, suggest:
-                     1. A matching science fiction book
-                     2. The author
-                     3. A 2-4 sentence summary focusing on themes that echo the headline
-                     4. A relevant quote from the book
-                     Return as JSON.`,
-            max_tokens: 500,
-            temperature: 0.7
-        })
-    });
-    return response.json();
-}
-```
-*/
