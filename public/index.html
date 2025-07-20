@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News from the Future - Powered by Grok</title>
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="News from the Future">
+    <meta property="og:description" content="Real headlines that sound like science fiction, matched with classic SF books by Grok AI">
+    <meta property="og:image" content="https://your-domain.com/preview.png">
+    <meta property="og:url" content="https://your-domain.com">
+    <meta name="twitter:card" content="summary_large_image">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --accent: #3b82f6;
+            --shadow: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --accent: #60a5fa;
+            --shadow: rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Header */
+        header {
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            opacity: 0;
+            animation: fadeIn 0.8s ease 0.2s forwards;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            right: 2rem;
+            top: 2rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            transition: transform 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(180deg);
+        }
+
+        /* Main Layout */
+        main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Column Headers */
+        .column-header {
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            font-weight: 500;
+            opacity: 0;
+            animation: fadeIn 0.8s ease 0.4s forwards;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px var(--shadow);
+            opacity: 0;
+            animation: slideUp 0.6s ease forwards;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px var(--shadow);
+        }
+
+        .card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Tweet Card */
+        .tweet-content {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .tweet-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .tweet-preview {
+            width: 100%;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            max-height: 200px;
+            object-fit: cover;
+        }
+
+        /* Book Card */
+        .book-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--accent);
+        }
+
+        .book-author {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .book-summary {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .book-quote {
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+            font-style: italic;
+            margin: 1rem 0;
+        }
+
+        .grok-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        /* Share Button */
+        .share-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: opacity 0.3s ease;
+        }
+
+        .share-button:hover {
+            opacity: 0.9;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Refresh Timer */
+        .refresh-timer {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-secondary);
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--border);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            opacity: 0;
+            animation: fadeIn 0.8s ease 1s forwards;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>News from the Future</h1>
+        <p class="subtitle">Real headlines that sound like science fiction, matched with classic SF books by Grok</p>
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+            <span id="theme-icon">🌙</span>
+        </button>
+    </header>
+
+    <main>
+        <section class="books-column">
+            <div class="column-header">📚 Science Fiction Book Matches</div>
+            <div id="books-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading matches...</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="tweets-column">
+            <div class="column-header">🔮 Live Headlines from X</div>
+            <div id="tweets-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Fetching headlines...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div class="refresh-timer" id="refresh-timer">
+        Next refresh in: <span id="timer">10:00</span>
+    </div>
+
+    <footer>
+        <p>Powered by <a href="https://x.ai" target="_blank">xAI Grok API</a> • Built with ❤️ for the future</p>
+    </footer>
+
+    <script>
+        // Theme Toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            
+            if (html.getAttribute('data-theme') === 'dark') {
+                html.removeAttribute('data-theme');
+                icon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                icon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.getElementById('theme-icon').textContent = '☀️';
+        }
+
+        // Data Management
+        let currentData = [];
+        let refreshInterval;
+        let countdownInterval;
+
+        // Fetch news data
+        async function fetchNews() {
+            try {
+                const response = await fetch('/api/fetch-news');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                currentData = data.matches;
+                displayData();
+            } catch (error) {
+                console.error('Error fetching news:', error);
+                document.getElementById('tweets-container').innerHTML = 
+                    '<div class="card"><p>Error loading headlines. Please try again later.</p></div>';
+                document.getElementById('books-container').innerHTML = 
+                    '<div class="card"><p>Error loading book matches. Please try again later.</p></div>';
+            }
+        }
+
+        // Display data
+        function displayData() {
+            const tweetsContainer = document.getElementById('tweets-container');
+            const booksContainer = document.getElementById('books-container');
+            
+            tweetsContainer.innerHTML = '';
+            booksContainer.innerHTML = '';
+            
+            currentData.forEach((match, index) => {
+                // Create tweet card
+                const tweetCard = document.createElement('div');
+                tweetCard.className = 'card tweet-card';
+                tweetCard.style.animationDelay = `${index * 0.1}s`;
+                tweetCard.dataset.index = index;
+                
+                tweetCard.innerHTML = `
+                    <div class="tweet-content">${match.headline}</div>
+                    <div class="tweet-meta">
+                        <span>@${match.username || 'futurenews'}</span>
+                        <span>•</span>
+                        <span>${formatTime(match.timestamp)}</span>
+                    </div>
+                    ${match.preview_image ? `<img src="${match.preview_image}" alt="Article preview" class="tweet-preview">` : ''}
+                    <button class="share-button" onclick="shareMatch(${index})">
+                        Share on X
+                    </button>
+                `;
+                
+                // Create book card
+                const bookCard = document.createElement('div');
+                bookCard.className = 'card book-card';
+                bookCard.style.animationDelay = `${index * 0.1}s`;
+                bookCard.dataset.index = index;
+                
+                bookCard.innerHTML = `
+                    <h3 class="book-title">${match.book.title}</h3>
+                    <p class="book-author">by ${match.book.author}</p>
+                    <p class="book-summary">${match.book.summary}</p>
+                    ${match.book.quote ? `<blockquote class="book-quote">"${match.book.quote}"</blockquote>` : ''}
+                    <div class="grok-badge">
+                        <span>✨</span>
+                        <span>Matched by Grok: The best AI for creative SF connections</span>
+                    </div>
+                `;
+                
+                // Add hover sync
+                tweetCard.addEventListener('mouseenter', () => highlightPair(index));
+                bookCard.addEventListener('mouseenter', () => highlightPair(index));
+                tweetCard.addEventListener('mouseleave', () => unhighlightPair(index));
+                bookCard.addEventListener('mouseleave', () => unhighlightPair(index));
+                
+                tweetsContainer.appendChild(tweetCard);
+                booksContainer.appendChild(bookCard);
+            });
+        }
+
+        // Highlight paired cards
+        function highlightPair(index) {
+            document.querySelectorAll(`.card[data-index="${index}"]`).forEach(card => {
+                card.classList.add('active');
+            });
+        }
+
+        function unhighlightPair(index) {
+            document.querySelectorAll(`.card[data-index="${index}"]`).forEach(card => {
+                card.classList.remove('active');
+            });
+        }
+
+        // Share functionality
+        function shareMatch(index) {
+            const match = currentData[index];
+            const text = `News from the Future: "${match.headline}" echoes "${match.book.quote || match.book.title}" from ${match.book.title}! #GrokBest`;
+            const url = window.location.href;
+            
+            const shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+            window.open(shareUrl, '_blank', 'width=550,height=420');
+        }
+
+        // Format timestamp
+        function formatTime(timestamp) {
+            if (!timestamp) return 'just now';
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return 'just now';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Countdown timer
+        function startCountdown() {
+            let seconds = 600; // 10 minutes
+            
+            countdownInterval = setInterval(() => {
+                seconds--;
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes}:${secs.toString().padStart(2, '0')}`;
+                
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    fetchNews();
+                    startCountdown();
+                }
+            }, 1000);
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchNews();
+            startCountdown();
+            
+            // Auto-refresh every 10 minutes
+            refreshInterval = setInterval(fetchNews, 600000);
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            clearInterval(refreshInterval);
+            clearInterval(countdownInterval);
+        });
+    </script>
+</body>
+</html>
